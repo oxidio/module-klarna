@@ -1,8 +1,14 @@
 {
-  "name": "topconcepts/oxid-klarna-6",
+  "name": "oxidio/module-klarna",
+  "replace": {
+    "topconcepts/oxid-klarna-6": "self.version"
+  },
   "description": "Klarna module for OXID eShop version 6.X",
   "type": "oxideshop-module",
   "extra": {
+    "branch-alias": {
+      "dev-oxidio-master": "5.x-dev"
+    },
     "oxideshop": {
       "blacklist-filter": [
         "documentation/**/*.*"
