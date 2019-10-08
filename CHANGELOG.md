@@ -1,4 +1,12 @@
-### Not Yet Released
+### 5.0.2
+* Acknowledge bug fix
+* Acknowledge Add proper http response
+* Acknowledge unit tests 
+
+### 5.0.1
+* KCO codeception tests
+* Thank you page iframe fix (when email sending fail)
+* Phpunit shopconfvar null oxvarname bug fix
 
 ### 5.0.0
 * KP Pay Now Split changes

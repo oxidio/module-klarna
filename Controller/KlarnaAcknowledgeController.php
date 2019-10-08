@@ -51,7 +51,7 @@ class KlarnaAcknowledgeController extends FrontendController
         $orderId = Registry::get(Request::class)->getRequestEscapedParameter('klarna_order_id');
 
         if (empty($orderId)) {
-            return;
+            $this->setValidResponseHeader(404, "Not found");
         }
 
         $this->registerKlarnaAckRequest($orderId);
@@ -66,8 +66,10 @@ class KlarnaAcknowledgeController extends FrontendController
         } catch (StandardException $e) {
             KlarnaUtils::logException($e);
 
-            return;
+            $this->setValidResponseHeader(400, "Bad request");
         }
+
+        $this->setValidResponseHeader(200, "OK");
     }
 
     /**
@@ -102,5 +104,21 @@ class KlarnaAcknowledgeController extends FrontendController
     protected function getKlarnaAckCount($orderId)
     {
         return KlarnaUtils::getKlarnaAckCount($orderId);
+    }
+
+    /**
+     * @codeCoverageIgnore
+     * @param $responseStatus
+     * @param $responseText
+     * @return bool
+     */
+    protected function setValidResponseHeader($responseStatus, $responseText)
+    {
+
+        Registry::getUtils()->setHeader("HTTP/1.0 ".$responseStatus." ".$responseText);
+        Registry::getUtils()->setHeader("Content-Type: text/html; charset=UTF-8");
+        Registry::getUtils()->showMessageAndExit($responseText);
+
+        return true;
     }
 }
