@@ -135,6 +135,7 @@ class KlarnaOrderController extends KlarnaOrderController_parent
                         $this->_aOrderData = $oClient->getOrder();
                     } catch (KlarnaClientException $oEx) {
                         KlarnaUtils::logException($oEx);
+                        return;
                     }
 
                     if (KlarnaUtils::is_ajax() && $this->_aOrderData['status'] === 'checkout_complete') {
@@ -210,11 +211,12 @@ class KlarnaOrderController extends KlarnaOrderController_parent
             return false;
         }
 
-        if ($this->isExternalCheckout) {
+        if ($oBasket->getPaymentId() === 'bestitamazon') {
             return false;
         }
 
-        if ($this->isPayPalAmazon()) {
+        $kcoId = Registry::getSession()->getVariable('klarna_checkout_order_id');
+        if ($oBasket->getPaymentId() === 'oxidpaypal' && $kcoId === null) {
             return false;
         }
 
@@ -298,6 +300,12 @@ class KlarnaOrderController extends KlarnaOrderController_parent
                 return $this->_getNextStep($iSuccess);
             }
 
+            if ($sAuthToken = Registry::get(Request::class)->getRequestEscapedParameter('sAuthToken')) {
+                // finalize flow - save authorization token
+                Registry::getSession()->setVariable('sAuthToken', $sAuthToken);
+                $dt = new \DateTime();
+                Registry::getSession()->setVariable('sTokenTimeStamp', $dt->getTimestamp());
+            }
         }
 
         // if user is not logged in set the user
@@ -308,73 +316,6 @@ class KlarnaOrderController extends KlarnaOrderController_parent
         $result = parent::execute();  // @codeCoverageIgnore
 
         return $result; // @codeCoverageIgnore
-    }
-
-    /**
-     * Runs before oxid execute in KP mode
-     * Saves authorization token
-     * Runs final validation
-     * Creates order on Klarna side
-     *
-     * @throws \OxidEsales\EshopCommunity\Core\Exception\SystemComponentException
-     * @throws \oxSystemComponentException
-     */
-    public function kpBeforeExecute()
-    {
-
-        // downloadable product validation for sofort
-        if (!$termsValid = $this->_validateTermsAndConditions()) {
-            Registry::get(UtilsView::class)->addErrorToDisplay('TCKLARNA_PLEASE_AGREE_TO_TERMS');
-            Registry::getUtils()->redirect(Registry::getConfig()->getShopSecureHomeUrl() . 'cl=order', false, 302);
-
-            return;
-        }
-
-        if ($sAuthToken = Registry::get(Request::class)->getRequestEscapedParameter('sAuthToken')) {
-            Registry::getSession()->setVariable('sAuthToken', $sAuthToken);
-            $dt = new \DateTime();
-            Registry::getSession()->setVariable('sTokenTimeStamp', $dt->getTimestamp());
-        }
-
-        if ($sAuthToken || Registry::getSession()->hasVariable('sAuthToken')) {
-
-            $oBasket        = Registry::getSession()->getBasket();
-            $oKlarnaPayment = oxNew(KlarnaPayment::class, $oBasket, $this->getUser());
-
-            $created = false;
-            $oKlarnaPayment->validateOrder();
-
-            $valid = $this->validatePayment($created, $oKlarnaPayment, $termsValid);
-
-            if (!$valid || !$created) {
-                Registry::getUtils()->redirect(Registry::getConfig()->getShopSecureHomeUrl() . 'cl=order', false, 302);
-
-                return;
-            }
-
-            Registry::getSession()->setVariable('klarna_last_KP_order_id', $created['order_id']);
-            Registry::getUtils()->redirect($created['redirect_url'], false, 302);
-        }
-    }
-
-    /**
-     * @param $created
-     * @param KlarnaPayment $oKlarnaPayment
-     * @param $termsValid
-     * @throws \oxSystemComponentException
-     * @return bool
-     */
-    protected function validatePayment(&$created, KlarnaPayment $oKlarnaPayment, $termsValid)
-    {
-        $oClient = $this->getKlarnaPaymentsClient();
-        $valid   = !$oKlarnaPayment->isError() && $termsValid;
-        if ($valid) {
-            $created = $oClient->initOrder($oKlarnaPayment)->createNewOrder();
-        } else {
-            $oKlarnaPayment->displayErrors();
-        }
-
-        return $valid;
     }
 
     /**
@@ -478,7 +419,7 @@ class KlarnaOrderController extends KlarnaOrderController_parent
         // login only if registered a new account with password
         if ($this->isRegisterNewUserNeeded()) {
             Registry::getSession()->setVariable('usr', $this->_oUser->getId());
-            Registry::getSession()->setVariable('blNeedLogout', true);
+            Registry::getSession()->setVariable('blNeedLogout', true); // TODO: seem to be not used - remove?
         }
 
         $this->setUser($this->_oUser);
@@ -851,7 +792,6 @@ class KlarnaOrderController extends KlarnaOrderController_parent
     protected function _initUser()
     {
         if ($this->_oUser = $this->getUser()) {
-            $this->_oUser->setType(KlarnaUser::NOT_REGISTERED);
             if ($this->getViewConfig()->isUserLoggedIn()) {
                 $this->_oUser->setType(KlarnaUser::LOGGED_IN);
             }
@@ -869,6 +809,8 @@ class KlarnaOrderController extends KlarnaOrderController_parent
 
         $oBasket = Registry::getSession()->getBasket();
         $oBasket->setBasketUser($this->_oUser);
+
+
     }
 
     /**
@@ -933,39 +875,31 @@ class KlarnaOrderController extends KlarnaOrderController_parent
             return;
         }
 
-        $oBasket = $oSession->getBasket();
-
         $oSession->setVariable("paymentid", $paymentId);
+        $oBasket = $oSession->getBasket();
+        // make sure we have the right shipping option
+        $oBasket->setShipping($this->_aOrderData['selected_shipping_option']['id']);
         $oBasket->setPayment($paymentId);
+        $oBasket->onUpdate();
 
         if ($this->isExternalCheckout) {
             $this->klarnaExternalCheckout($paymentId);
+            return;
         }
-
-        $oBasket->setPayment($paymentId);
-
-        if ($this->_oUser->isCreatable()) {
-            $this->_createUser();
-        }
-        // make sure we have the right shipping option
-        $oBasket->setShipping($this->_aOrderData['selected_shipping_option']['id']);
-        $oBasket->onUpdate();
 
         if ($paymentId === 'bestitamazon') {
-            Registry::getUtils()->redirect(Registry::getConfig()->getShopSecureHomeUrl() . "cl=KlarnaEpmDispatcher&fnc=amazonLogin", false);
+            if ($this->_oUser->isCreatable()) {
+                // create user
+                $this->_createUser();
+            }
 
-            return;
+            return Registry::getUtils()->redirect(Registry::getConfig()->getShopSecureHomeUrl() . "cl=KlarnaEpmDispatcher&fnc=amazonLogin", false);
         } else {
             Registry::getConfig()->setConfigParam('blAmazonLoginActive', false);
         }
 
         if ($paymentId === 'oxidpaypal') {
-            if (isset($_COOKIE["pp_standard_dispatcher"]) && $_COOKIE["pp_standard_dispatcher"] == true) {
-
-                return Registry::get(StandardDispatcher::class)->setExpressCheckout();
-            }
-
-            return Registry::get(ExpressCheckoutDispatcher::class)->setExpressCheckout();
+            return Registry::get(StandardDispatcher::class)->setExpressCheckout();
         }
 
         // if user is not logged in set the user to render order
@@ -982,11 +916,16 @@ class KlarnaOrderController extends KlarnaOrderController_parent
         if ($paymentId === 'bestitamazon') {
             Registry::getUtils()->redirect(Registry::getConfig()->getShopSecureHomeUrl() . "cl=KlarnaEpmDispatcher&fnc=amazonLogin", false);
         } else if ($paymentId === 'oxidpaypal') {
-            Registry::get(ExpressCheckoutDispatcher::class)->setExpressCheckout();
+            $useStandardDispatcher = $this->getUser()->tcklrnaHasValidInfo();
+            if ($useStandardDispatcher) {
+                return Registry::get(StandardDispatcher::class)->setExpressCheckout();
+            }
+            return Registry::get(ExpressCheckoutDispatcher::class)->setExpressCheckout();
+
         } else {
             KlarnaUtils::fullyResetKlarnaSession();
             Registry::get(UtilsView::class)->addErrorToDisplay('KLARNA_WENT_WRONG_TRY_AGAIN', false, true);
-            Registry::getUtils()->redirect($this->selfUrl, true, 302);
+            return Registry::getUtils()->redirect($this->selfUrl, true, 302);
         }
     }
 
@@ -1164,14 +1103,6 @@ class KlarnaOrderController extends KlarnaOrderController_parent
     }
 
     /**
-     * @return bool
-     */
-    protected function isPayPalAmazon()
-    {
-        return in_array(Registry::getSession()->getBasket()->getPaymentId(), array('oxidpaypal', 'bestitamazon'));
-    }
-
-    /**
      * @return bool|false|string
      * @throws \OxidEsales\Eshop\Core\Exception\DatabaseConnectionException
      */
@@ -1208,6 +1139,7 @@ class KlarnaOrderController extends KlarnaOrderController_parent
     /**
      * @param $oBasket
      * @return KlarnaOrder
+     * @throws \OxidEsales\EshopCommunity\Core\Exception\SystemComponentException
      * @throws \OxidEsales\EshopCommunity\Core\Exception\SystemComponentException
      */
     protected function initKlarnaOrder($oBasket)
