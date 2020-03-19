@@ -246,16 +246,12 @@ class KlarnaPaymentControllerTest extends ModuleUnitTestCase
 
         $oPaymentController = $this->getMockBuilder(PaymentController::class)->setMethods(['countKPMethods', 'getUser', 'removeUnavailableKP'])->getMock();
 
-        // "at" method behaves incorrect here - indexes should be 0 an 1 not 2 and 5
-        // possibly PHPUnit bug
-        $oPaymentController->expects($this->at(2))
+        $oPaymentController->expects($this->any())
             ->method('countKPMethods')->willReturn($args['countKPMethodsBefore']);
-        $oPaymentController->expects($this->at(5))
-            ->method('countKPMethods')->willReturn(0);
-
 
         $oPaymentController->expects($this->any())
             ->method('getUser')->willReturn($oUser);
+
         $oPaymentController->expects($this->exactly($results['removeUnavailableKP_calls']))
             ->method('removeUnavailableKP');
 
@@ -269,7 +265,7 @@ class KlarnaPaymentControllerTest extends ModuleUnitTestCase
         $this->assertEquals("page/checkout/payment.tpl", $tpl);
 
         $viewData = $oPaymentController->getViewData();
-        $results['shouldError'] ? $this->assertArrayHasKey('kpError', $viewData) : $this->assertArrayNotHasKey('kpError', $viewData);
+        $results['isError'] ? $this->assertArrayHasKey('kpError', $viewData) : $this->assertArrayNotHasKey('kpError', $viewData);
         $results['shouldLocale'] ? $this->assertArrayHasKey('sLocale', $viewData) : $this->assertArrayNotHasKey('sLocale', $viewData);
         $args['countKPMethodsAfter'] === 0 && $this->assertFalse($oPaymentController->loadKlarnaPaymentWidget);
 
@@ -324,20 +320,27 @@ class KlarnaPaymentControllerTest extends ModuleUnitTestCase
 
     public function testGetPaymentList()
     {
+        $getSUT = function() {
+            $oPaymentController = $this->getMockBuilder(PaymentController::class)
+                ->setMethods(['tckl_getPaymentListParent'])
+                ->getMock();
+            $oPayment = 'fakeObject';
+            $payList = [
+                'klarna_pay_later'        => $oPayment,
+                'id_1'                    => $oPayment,
+                'klarna_checkout'         => $oPayment,
+                'klarna_slice_it'         => $oPayment,
+                'id_4'                    => $oPayment,
+                'klarna_instant_shopping' => $oPayment,
+            ];
+            $oPaymentController->expects($this->any())->method('tckl_getPaymentListParent')
+                ->willReturn($payList);
 
-        $oPaymentController = oxNew(PaymentController::class);
-        $oPayment           = 'fakeObject';
+            return $oPaymentController;
+        };
 
-        $payList = [
-            'klarna_pay_later' => $oPayment,
-            'id_1'             => $oPayment,
-            'klarna_checkout'  => $oPayment,
-            'klarna_slice_it'  => $oPayment,
-            'id_4'             => $oPayment,
-        ];
-
-        $this->setProtectedClassProperty($oPaymentController, 'aPaymentList', $payList);
-        $result = $oPaymentController->getPaymentList();
+        $this->setModuleMode('KP');
+        $result = $getSUT()->getPaymentList();
         $this->assertEquals([
             'klarna_pay_later' => 'fakeObject',
             'id_1'             => 'fakeObject',
@@ -346,8 +349,7 @@ class KlarnaPaymentControllerTest extends ModuleUnitTestCase
         ], $result);
 
         $this->setModuleMode('KCO');
-        $this->setProtectedClassProperty($oPaymentController, 'aPaymentList', $payList);
-        $result = $oPaymentController->getPaymentList();
+        $result = $getSUT()->getPaymentList();
         $this->assertEquals([
             'id_1'             => 'fakeObject',
             'id_4'             => 'fakeObject'

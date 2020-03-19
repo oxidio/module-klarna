@@ -15,7 +15,6 @@ class InstantShoppingCest
      */
     public function visibleButton(AcceptanceTester $I, $scenario)
     {
-        $scenario->skip('InstantShopping will be included on next release');
         $this->activateInstantShopping($I);
         $I->openShop();
         $I->waitForPageLoad();
@@ -40,7 +39,6 @@ class InstantShoppingCest
      */
     public function instantShopping(AcceptanceTester $I, $scenario)
     {
-        $scenario->skip('InstantShopping will be included on next release');
         $this->activateInstantShopping($I);
         $I->wait(3);
         $I->openShop();
@@ -53,7 +51,7 @@ class InstantShoppingCest
         $this->fillInstantShoppingForm($I);
         $I->waitForElement('//*[@id="checkout-button"]');
         $I->click('//*[@id="checkout-button"]');
-        $I->wait(2);
+        $I->wait(5);
         $I->waitForElementClickable('//*[@id="confirmation__bottom"]');
         $I->click('//*[@id="confirmation__bottom"]');
         $I->wait(3);

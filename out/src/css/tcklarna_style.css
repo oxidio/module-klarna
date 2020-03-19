@@ -222,3 +222,11 @@ div.klarna-flag {
 .kco-placeholder {
     height: 500px;
 }
+
+button.nextStep {
+    margin-bottom: 10px;
+}
+
+.half-width button.nextStep {
+    margin-bottom: 10px;
+}

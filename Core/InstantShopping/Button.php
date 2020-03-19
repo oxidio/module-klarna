@@ -72,7 +72,7 @@ class Button
             $orderData["merchant_reference2"] = $this->basketAdapter->getMerchantData();
         } catch (KlarnaConfigException $e) {
             $this->errors[] = $e->getMessage();
-            Registry::getLogger()->log('info', $e->getMessage(), [__METHOD__]);
+            KlarnaUtils::log('info', $e->getMessage(), [__METHOD__]);
         }
 
         $config["billing_countries"] = array_values($this->getKlarnaCountryList());
@@ -141,6 +141,12 @@ class Button
             if($attachment) {
                 $result['attachment'] = $user->getAttachmentsData();
             }
+
+            if($user->oxuser__oxbirthdate->value != "0000-00-00") {
+                $result['customer']['date_of_birth'] = $user->oxuser__oxbirthdate->value;
+            }
+
+            $result['customer']['gender'] = $user->oxuser__oxsal->value;
         }
 
         return $result;
@@ -266,7 +272,7 @@ class Button
             try {
                 $oBasket->addToBasket($product->getId(), 1);
             } catch (\Exception $e) {
-                Registry::getLogger()->log('error', print_r($e->getMessage(), true));
+                KlarnaUtils::log('error', print_r($e->getMessage(), true));
             }
             $type = KlarnaInstantBasket::TYPE_SINGLE_PRODUCT;
             Registry::getSession()->deleteVariable("blAddedNewItem"); // prevent showing notification to user

@@ -200,20 +200,27 @@ class KlarnaPaymentController extends KlarnaPaymentController_parent
          * This will pass modified list to the tempalte
          */
         if (!$this->aPaymentList) {
-            $this->aPaymentList = parent::getPaymentList();
-        }
-        if (KlarnaUtils::isKlarnaPaymentsEnabled()) {
-            // remove needless methods from the list
-            unset($this->aPaymentList[KlarnaPaymentModel::KLARNA_PAYMENT_CHECKOUT_ID]);
-
-        } else {
-            $klarnaPayments = KlarnaPaymentModel::getKlarnaPaymentsIds();
-            foreach ($klarnaPayments as $paymentId) {
+            $this->aPaymentList = $this->tckl_getPaymentListParent();
+            $allKlarnaPaymentIds = KlarnaPaymentModel::getKlarnaPaymentsIds();
+            $toRemove = $allKlarnaPaymentIds;
+            if (KlarnaUtils::isKlarnaPaymentsEnabled()) {
+                $KPPaymentIds = KlarnaPaymentModel::getKlarnaPaymentsIds('KP');
+                $toRemove = array_diff($allKlarnaPaymentIds, $KPPaymentIds);
+            }
+            foreach ($toRemove as $paymentId) {
                 unset($this->aPaymentList[$paymentId]);
             }
         }
 
         return $this->aPaymentList;
+    }
+
+    /**
+     * Unit test wrapper
+     * @codeCoverageIgnore
+     */
+    protected function tckl_getPaymentListParent() {
+        return parent::getPaymentList();
     }
 
     /** Return shipping sets for KCO

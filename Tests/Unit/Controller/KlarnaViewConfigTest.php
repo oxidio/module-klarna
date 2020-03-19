@@ -97,14 +97,6 @@ class KlarnaViewConfigTest extends ModuleUnitTestCase
         $this->assertFalse( $oViewConfig->getIsAustria());
     }
 
-    public function getKlarnaHomepageBannerDataProvider()
-    {
-        return [
-            [true, 'mid'],
-            [false, 'mid2']
-        ];
-    }
-
     public function isDEDataProvider()
     {
         return [
@@ -133,28 +125,6 @@ class KlarnaViewConfigTest extends ModuleUnitTestCase
         $oViewConfig = $this->getMockBuilder(ViewConfig::class)->setMethods(['getUser'])->getMock();
         $oViewConfig->expects($this->once())->method('getUser')->willReturn(null);
         $this->assertTrue( $oViewConfig->getIsGermany());
-    }
-
-    /**
-     * @dataProvider getKlarnaHomepageBannerDataProvider
-     * @param $displayBanner
-     * @param $merchantId
-     */
-    public function testGetKlarnaHomepageBanner($displayBanner, $merchantId)
-    {
-
-        $this->getConfig()->saveShopConfVar('bool', 'blKlarnaDisplayBanner', $displayBanner, $this->getShopId(), 'module:tcklarna');
-        $this->getConfig()->saveShopConfVar('str', 'sKlarnaMerchantId', $merchantId, $this->getShopId(), 'module:tcklarna');
-
-        $oViewConfig = oxNew(ViewConfig::class);
-        $result = $oViewConfig->getKlarnaHomepageBanner();
-
-        if($displayBanner){
-            $this->assertContains($merchantId, $result);
-        } else {
-            $this->assertEquals(null, $result);
-        }
-
     }
 
     public function showCheckoutTermsDataProvider()
@@ -256,46 +226,41 @@ class KlarnaViewConfigTest extends ModuleUnitTestCase
     public function getKlarnaFooterContentDataProvider()
     {
         return [
-            ['KP', 0, 'longBlack',false,false, false],
-            ['KP', 1, 'logoBlack',false,false, false],
-            ['KP', 2, 'logoBlack',false,false, [
-                'url' => '//cdn.klarna.com/1.0/shared/image/generic/logo/en_gb/basic/logo_black.png',
-                'class' => 'logoBlack'
+            ['KP', 0, 'longBlack',false, false],
+            ['KP', 1, 'logoFooter',false, false],
+            ['KP', 2, 'logoFooter',false, [
+                'url' => 'https://x.klarnacdn.net/payment-method/assets/badges/generic/klarna.svg',
+                'class' => 'logoFooter'
             ]],
-            ['KP', 2, 'logoWhite',false,false, [
-                'url' => '//cdn.klarna.com/1.0/shared/image/generic/logo/en_gb/basic/logo_white.png',
-                'class' => 'logoWhite'
-            ]],
-            ['KCO', 0, 'longBlack', false,false, false],
-            ['KCO', 1, 'longBlack',false,false, [
+            ['KCO', 0, 'longBlack', false, false],
+            ['KCO', 1, 'longBlack',false, [
                 'url' => '//cdn.klarna.com/1.0/shared/image/generic/badge/de_de/checkout/long-blue.png?width=440',
                 'class' => 'longBlack'
             ]],
-            ['KCO', 1, 'longWhite',false,false, [
+            ['KCO', 1, 'longWhite',false, [
                 'url' => '//cdn.klarna.com/1.0/shared/image/generic/badge/de_de/checkout/long-white.png?width=440',
                 'class' => 'longWhite'
             ]],
-            ['KCO', 1, 'shortBlack',false,false, [
+            ['KCO', 1, 'shortBlack',false, [
                 'url' => '//cdn.klarna.com/1.0/shared/image/generic/badge/de_de/checkout/short-blue.png?width=312',
                 'class' => 'shortBlack'
             ]],
-            ['KCO', 1, 'shortWhite',false,false, [
+            ['KCO', 1, 'shortWhite',false, [
                 'url' => '//cdn.klarna.com/1.0/shared/image/generic/badge/de_de/checkout/short-white.png?width=312',
                 'class' => 'shortWhite'
             ]],
-            ['KCO', 2, 'logoBlack',false,false, [
+            ['KCO', 2, 'logoBlack',false, [
                 'url' => '//cdn.klarna.com/1.0/shared/image/generic/logo/en_gb/basic/logo_black.png',
                 'class' => 'logoBlack'
             ]],
-            ['KCO', 2, 'logoWhite',false,false, [
+            ['KCO', 2, 'logoWhite',false, [
                 'url' => '//cdn.klarna.com/1.0/shared/image/generic/logo/en_gb/basic/logo_white.png',
                 'class' => 'logoWhite'
             ]],
-            ['KCO', 2, 'logoWhite','script','promo', [
+            ['KCO', 2, 'logoWhite','script', [
                 'url' => '//cdn.klarna.com/1.0/shared/image/generic/logo/en_gb/basic/logo_white.png',
                 'class' => 'logoWhite',
-                'script' => 'script',
-                'promotion' => 'promo'
+                'script' => 'script'
             ]],
         ];
     }
@@ -318,13 +283,12 @@ class KlarnaViewConfigTest extends ModuleUnitTestCase
      * @param $klPromo
      * @param $expectedResult
      */
-    public function testGetKlarnaFooterContent($mode, $klFooterType, $klFooterValue, $klScript, $klPromo, $expectedResult)
+    public function testGetKlarnaFooterContent($mode, $klFooterType, $klFooterValue, $klScript, $expectedResult)
     {
         $this->getConfig()->saveShopConfVar('str', 'sKlarnaFooterDisplay', $klFooterType, $this->getShopId(), 'module:tcklarna');
         $this->getConfig()->saveShopConfVar('str', 'sKlarnaFooterValue', $klFooterValue, $this->getShopId(), 'module:tcklarna');
 
         $this->getConfig()->saveShopConfVar('str', 'sKlarnaMessagingScript', $klScript, $this->getShopId(), 'module:tcklarna');
-        $this->getConfig()->saveShopConfVar('str', 'sKlarnaFooterPromotion', $klPromo, $this->getShopId(), 'module:tcklarna');
         $this->setModuleMode($mode);
 
         $oViewConfig = oxNew(ViewConfig::class);
@@ -535,8 +499,19 @@ class KlarnaViewConfigTest extends ModuleUnitTestCase
         $price->expects($this->any())->method('getBruttoPrice')->willReturn(10);
         $price->expects($this->any())->method('getVat')->willReturn(0.23);
 
+        //promotion product key
+        $this->getConfig()->saveShopConfVar('str', 'sKlarnaCreditPromotionProduct', 'data-purchase-amount="%s"', null, 'module:tcklarna');
+        $product = $this->getMockBuilder(Article::class)->setMethods(['getPrice'])->getMock();
+
+        $product->expects($this->any())->method('getPrice')->willReturn($price);
+
+        $result = $oViewConfig->getOnSitePromotionInfo('sKlarnaCreditPromotionProduct', $product);
+
+        $this->assertSame('data-purchase-amount="1000"', $result);
+
         //promotion basket key
-        $this->getConfig()->saveShopConfVar('str', 'sKlarnaCreditPromotionBasket', 'data-purchase_amount="%s"', null, 'module:tcklarna');
+        $oViewConfig->expects($this->any())->method('getActiveClassName')->willReturn('basket');
+        $this->getConfig()->saveShopConfVar('str', 'sKlarnaCreditPromotionBasket', 'data-purchase-amount="%s"', null, 'module:tcklarna');
 
         $basket = $this->getMockBuilder(Basket::class)->setMethods(['getPrice'])->getMock();
 
@@ -546,17 +521,7 @@ class KlarnaViewConfigTest extends ModuleUnitTestCase
 
         $result = $oViewConfig->getOnSitePromotionInfo('sKlarnaCreditPromotionBasket');
 
-        $this->assertSame('data-purchase_amount="998"', $result);
-
-        //promotion product key
-        $this->getConfig()->saveShopConfVar('str', 'sKlarnaCreditPromotionProduct', 'data-purchase_amount="%s"', null, 'module:tcklarna');
-        $product = $this->getMockBuilder(Article::class)->setMethods(['getPrice'])->getMock();
-
-        $product->expects($this->any())->method('getPrice')->willReturn($price);
-
-        $result = $oViewConfig->getOnSitePromotionInfo('sKlarnaCreditPromotionProduct', $product);
-
-        $this->assertSame('data-purchase_amount="1000"', $result);
+        $this->assertSame('data-purchase-amount="998"', $result);
 
     }
 

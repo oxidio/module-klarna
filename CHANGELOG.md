@@ -1,7 +1,33 @@
+### 5.1.3
+* Adjust Unit Tests
+
+### 5.1.2
+* Adjust Codeception Tests
+
+On-Site Messaging: 
+* Field data-purchase_amount was renamed into data-purchase-amount
+* Adjust styling on details page and remove from order overview
+
+
+### 5.1.1
+* Remove Klarna homepage banner and teaser
+* Remove On-Site Messaging Footer Promotion
+* Replace Footer Logo for KP
+* Fix Javascript problem when custom theme is in use
+* Rename Klarna Payment methods
+* Update Pay Now and Pay later translation
+* add birthdate and gender to Instant Shopping initialization
+* Test and support for OXID 6.2.0 RC 2
+* Add support for PHP 7.3 and PHP 7.4
+
 ### 5.1.0
-* On-Site Message Implementation
+* Implementation of Klarna Instant Shopping
+* Implementation or Klarna On-Site Messaging
 * PaymentGateway implementation for KP
-* Preperation for Klarna Instant Shopping
+* Bugfix for KCO Ext. Payment PayPal: Salutation, Company or c/o field and billing address lost
+* Update of Klarna merchant center URLs in admin backend
+* Rename of "Slice it" to "Financing"
+* Hide KCO country selector with only one active country
 
 ### 5.0.2
 * Acknowledge bug fix

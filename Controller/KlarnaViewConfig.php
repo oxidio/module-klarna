@@ -92,7 +92,9 @@ class KlarnaViewConfig extends KlarnaViewConfig_parent
 
             $url  = sprintf(KlarnaConsts::getFooterImgUrls(KlarnaUtils::getShopConfVar('sKlarnaFooterValue')), $sLocale);
             $from = '/' . preg_quote('-', '/') . '/';
-            $url  = preg_replace($from, '_', $url, 1);
+            if(KlarnaUtils::getShopConfVar('sKlarnaFooterValue') != 'logoFooter') {
+                $url  = preg_replace($from, '_', $url, 1);
+            }
 
             $response = array(
                 'url'   => $url,
@@ -104,49 +106,27 @@ class KlarnaViewConfig extends KlarnaViewConfig_parent
             $response['script'] = KlarnaUtils::getShopConfVar('sKlarnaMessagingScript');
         }
 
-        if(KlarnaUtils::getShopConfVar('sKlarnaFooterPromotion')) {
-            $response['promotion'] = KlarnaUtils::getShopConfVar('sKlarnaFooterPromotion');
-        }
-
-
         return $response;
-    }
-
-    /**
-     *
-     */
-    public function getKlarnaHomepageBanner()
-    {
-        if (KlarnaUtils::getShopConfVar('blKlarnaDisplayBanner')) {
-            $oLang = Registry::getLang();
-            $lang  = $oLang->getLanguageAbbr();
-
-            $varName = 'sKlarnaBannerSrc' . '_' . strtoupper($lang);
-            if (!$sBannerScript = KlarnaUtils::getShopConfVar($varName)) {
-                $aDefaults     = KlarnaConsts::getDefaultBannerSrc();
-                $sBannerScript = $aDefaults[$lang];
-            }
-
-            return str_replace('{{merchantid}}', KlarnaUtils::getShopConfVar('sKlarnaMerchantId'), $sBannerScript);
-        }
-
-        return false;
     }
 
     public function getOnSitePromotionInfo($key, $detailProduct = null)
     {
+        if($this->getActiveClassName() != 'basket' && $key == "sKlarnaCreditPromotionBasket") {
+            return '';
+        }
 
         if($key == "sKlarnaCreditPromotionBasket" || $key == "sKlarnaCreditPromotionProduct") {
 
             $promotion = KlarnaUtils::getShopConfVar($key);
-            $promotion = preg_replace('/data-purchase_amount=\"(\d*)\"/', 'data-purchase_amount="%s"', $promotion);
+            $promotion = preg_replace('/data-purchase-amount=\"(\d*)\"/', 'data-purchase-amount="%s"', $promotion);
             $price = 0;
-            if($key == "sKlarnaCreditPromotionProduct" && $detailProduct != null) {
+            $productHasPrice = Registry::getConfig()->getConfigParam('bl_perfLoadPrice');
+            if($key == "sKlarnaCreditPromotionProduct" && $detailProduct != null && $productHasPrice) {
                 $price = $detailProduct->getPrice()->getBruttoPrice();
                 $price = number_format((float)$price*100., 0, '.', '');
             }
 
-            if($key == "sKlarnaCreditPromotionBasket") {
+            if($key == "sKlarnaCreditPromotionBasket" ) {
                 $price = Registry::getSession()->getBasket()->getPrice()->getNettoPrice();
                 $price = number_format((float)$price*100., 0, '.', '');
             }
