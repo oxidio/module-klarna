@@ -84,7 +84,7 @@ class KlarnaConsts
      */
     public static function getKlarnaCoreCountries()
     {
-        return array('SE', 'NO', 'FI', 'DE', 'AT', 'NL', 'GB', 'DK', 'CH');
+        return array('SE', 'NO', 'FI', 'DE', 'AT', 'NL', 'GB', 'DK', 'CH', 'ES', 'FR', 'BE', 'IT');
     }
 
     /**
@@ -121,7 +121,10 @@ class KlarnaConsts
             'AT' => 'EUR',
             'GB' => 'GBP',
             'CH' => 'CHF',
-            'BE' => 'EUR'
+            'BE' => 'EUR',
+            'FR' => 'EUR',
+            'ES' => 'EUR',
+            'IT' => 'EUR'
         );
     }
 
@@ -208,7 +211,11 @@ class KlarnaConsts
             'fi' => 'fi-FI',
             'sv' => 'sv-SE',
             'at' => 'de-AT',
-            'us' => 'en-US'
+            'us' => 'en-US',
+            'be' => 'fr-BE',
+            'fr' => 'fr-fr',
+            'es' => 'es-ES',
+            'it' => 'it-IT'
         ];
 
         if(isAdmin() && $default === true) {
@@ -241,5 +248,15 @@ class KlarnaConsts
     public static function getKlarnaPopUpFlagCountries()
     {
         return array('DE', 'AT', 'CH');
+    }
+    
+    public static function getCustomerTypes() {
+        return array(
+            'B2C'     => array('person'),
+            'B2B'     => array('organization'),
+            'B2C_B2B' => array('person', 'organization'),
+            'B2B_B2C' => array('organization', 'person'),
+            'B2BOTH'  => array('organization', 'person') // old config value
+        );
     }
 }
